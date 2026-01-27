@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rover Controller</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background-color: #0a0a0c;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            font-family: "Inter", sans-serif;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.5s ease;
+        }
+
+        .card {
+            position: relative;
+            width: 90%;
+            max-width: 380px;
+            padding: 40px 20px;
+            border-radius: 30px;
+            background: rgba(15, 15, 20, 0.4);
+            backdrop-filter: blur(25px) saturate(150%);
+            -webkit-backdrop-filter: blur(25px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .top-bar span {
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.6);
+            display: block;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-areas: ". up ." "left stop right" ". down .";
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        button {
+            width: 85px;
+            height: 85px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+            transition: all 0.1s ease;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button span {
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active,
+        button.active-key {
+            transform: scale(0.94);
+            background: rgba(56, 189, 248, 0.15);
+            border-color: rgba(56, 189, 248, 0.4);
+        }
+
+        .up {
+            grid-area: up;
+        }
+
+        .left {
+            grid-area: left;
+        }
+
+        .right {
+            grid-area: right;
+        }
+
+        .down {
+            grid-area: down;
+        }
+
+        .stop {
+            grid-area: stop;
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            z-index: 10;
+        }
+
+        .stop:active,
+        .stop.active-key {
+            background: rgba(239, 68, 68, 0.25);
+            transform: scale(0.94);
+        }
+
+        .card.auto-active .up,
+        .card.auto-active .left,
+        .card.auto-active .right,
+        .card.auto-active .down {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+        }
+
+        .card.auto-active .stop {
+            background: rgba(239, 68, 68, 0.25);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+            transform: scale(1.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        .mode-btn {
+            width: 100%;
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 15px;
+            color: #38bdf8;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.75rem;
+        }
+
+        .mode-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .card.auto-active .mode-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .bg-control {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-file-upload {
+            display: inline-block;
+            padding: 8px 16px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #bg-input {
+            display: none;
+        }
+
+        .dev-toggle {
+            margin-top: 15px;
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+        }
+
+        .dev {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            display: none;
+        }
+
+        .kb-hint {
+            margin-top: 15px;
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card" id="mainCard">
+        <div class="top-bar"><span id="statusText">MANUAL CONTROL</span></div>
+        <div class="controls">
+            <button class="up" onclick="sendCommand('F')"><span>▲</span>Front</button>
+            <button class="left" onclick="sendCommand('L')"><span>◀</span>Left</button>
+            <button class="stop" onclick="sendCommand('S')"><span>■</span>Stop</button>
+            <button class="right" onclick="sendCommand('R')"><span>▶</span>Right</button>
+            <button class="down" onclick="sendCommand('B')"><span>▼</span>Back</button>
+        </div>
+        <button class="mode-btn" id="autoBtn" onclick="toggleAuto()">Enable Automatic Drive</button>
+
+        <div class="kb-hint"></div>
+
+        <div class="bg-control">
+            <label for="bg-input" class="custom-file-upload">Change Wallpaper</label>
+            <input type="file" id="bg-input" accept="image/*">
+        </div>
+        <div class="dev-toggle" onclick="toggleDev()">DEVELOPED BY</div>
+        <div class="dev" id="devPanel">Bhavya Singh Rajawat • Jiya Sharma<br>Tanisha • Meenakshi</div>
+    </div>
+    <script>
+        let isAuto = false;
+
+        // --- KEYBOARD LISTENERS ---
+        document.addEventListener('keydown', function (e) {
+            if (isAuto) return;
+            if (e.repeat) return;
+
+            const key = e.key.toLowerCase();
+
+            if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(key)) {
+                e.preventDefault();
+            }
+
+            if (key === 'w' || key === 'arrowup') { sendCommand('F'); highlight('up'); }
+            else if (key === 'a' || key === 'arrowleft') { sendCommand('L'); highlight('left'); }
+            else if (key === 'd' || key === 'arrowright') { sendCommand('R'); highlight('right'); }
+            else if (key === 's' || key === 'arrowdown') { sendCommand('B'); highlight('down'); }
+            else if (key === ' ' || key === 'x') { sendCommand('S'); highlight('stop'); }
+        });
+
+        document.addEventListener('keyup', function (e) {
+            const btns = document.querySelectorAll('button');
+            btns.forEach(btn => btn.classList.remove('active-key'));
+        });
+
+        function highlight(className) {
+            const btn = document.querySelector('.' + className);
+            if (btn) btn.classList.add('active-key');
+        }
+        // --------------------------
+
+        function toggleAuto() {
+            isAuto = !isAuto;
+            const card = document.getElementById('mainCard');
+            const btn = document.getElementById('autoBtn');
+            const status = document.getElementById('statusText');
+            if (isAuto) {
+                card.classList.add('auto-active');
+                btn.innerText = "Re-enter Manual Drive";
+                status.innerText = "AUTOMATIC DRIVE ACTIVE";
+                status.style.color = "#38bdf8";
+                sendCommand('A');
+            } else {
+                card.classList.remove('auto-active');
+                btn.innerText = "Enable Automatic Drive";
+                status.innerText = "MANUAL CONTROL";
+                status.style.color = "rgba(255, 255, 255, 0.6)";
+                sendCommand('M');
+            }
+        }
+        function sendCommand(dir) { fetch(`/action?dir=${dir}`).catch(e => console.log("Offline")); }
+
+        const bgInput = document.getElementById('bg-input');
+        bgInput.addEventListener('change', function (e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) { document.body.style.backgroundImage = `url('${e.target.result}')`; }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+        function toggleDev() {
+            const dev = document.getElementById("devPanel");
+            dev.style.display = dev.style.display === "block" ? "none" : "block";
+        }
+    </script>
+</body>
+
+</html>

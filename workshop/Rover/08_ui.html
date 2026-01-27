@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rover Control</title>
+    <style>
+        body { margin: 0; min-height: 100vh; background-color: #0a0a0c; background-size: cover; background-position: center; font-family: "Inter", sans-serif; color: #ffffff; display: flex; justify-content: center; align-items: center; }
+        .card { position: relative; width: 90%; max-width: 380px; padding: 40px 20px; border-radius: 30px; background: rgba(15, 15, 20, 0.5); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 40px 100px rgba(0,0,0,0.6); text-align: center; transition: 0.3s; }
+        
+        .top-bar span { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.6); display: block; margin-bottom: 20px; font-weight: bold; }
+        
+        #radar-section { display: none; margin-bottom: 20px; }
+        canvas { background: radial-gradient(circle at 50% 100%, rgba(56,189,248,0.1), transparent 70%); border-radius: 100px 100px 0 0; border-bottom: 2px solid #38bdf8; }
+
+        .controls { display: grid; grid-template-areas: ". up ." "left stop right" ". down ."; gap: 15px; justify-content: center; margin-bottom: 25px; transition: 0.3s; }
+        button { width: 85px; height: 85px; font-size: 0.65rem; text-transform: uppercase; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s; }
+        button span { font-size: 1.4rem; margin-bottom: 5px; }
+        
+        /* Keyboard Active State Style */
+        button:active, .key-active { transform: scale(0.95); background: rgba(56,189,248,0.2) !important; border-color: #38bdf8 !important; }
+
+        .up { grid-area: up; } .left { grid-area: left; } .right { grid-area: right; } .down { grid-area: down; }
+        .stop { grid-area: stop; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: #ef4444; z-index: 10; }
+        .stop:active, .stop.key-active { background: rgba(239,68,68,0.4) !important; }
+
+        /* HIDE BUTTONS IN AUTO MODE */
+        .auto-active .up, .auto-active .down, .auto-active .left, .auto-active .right { visibility: hidden; pointer-events: none; }
+        .auto-active .stop { transform: scale(1.2); box-shadow: 0 0 20px rgba(239,68,68,0.4); background: rgba(239,68,68,0.2); }
+
+        .main-btn { width: 100%; padding: 15px; background: rgba(56,189,248,0.1); border: 1px solid rgba(56,189,248,0.3); border-radius: 15px; color: #38bdf8; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.75rem; margin-top: 10px; }
+        #wallBtn { display: none; width: 100%; padding: 12px; margin-top: 10px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 15px; color: #10b981; font-weight: 600; cursor: pointer; text-transform: uppercase; font-size: 0.7rem; }
+
+        .radar-link { font-size: 0.65rem; color: #666; margin-top: 15px; text-decoration: underline; cursor: pointer; }
+        .bg-control { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .custom-file-upload { display: inline-block; padding: 8px 16px; cursor: pointer; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.7rem; color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+        #bg-input { display: none; }
+        .dev-toggle { margin-top: 15px; font-size: 0.6rem; color: #555; cursor: pointer; }
+        .dev { display: none; font-size: 0.8rem; color: #888; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="card" id="mainCard">
+        <div class="top-bar"><span id="statusText">MANUAL CONTROL</span></div>
+        <div id="radar-section"><canvas id="radarCanvas" width="260" height="130"></canvas><div style="font-size:0.8rem; margin-top:5px; color:#38bdf8">Dist: <span id="distVal">--</span> cm</div></div>
+
+        <div class="controls">
+            <button class="up" onmousedown="send('F')" onmouseup="send('S')" ontouchstart="send('F')" ontouchend="send('S')"><span>▲</span></button>
+            <button class="left" onmousedown="send('L')" onmouseup="send('S')" ontouchstart="send('L')" ontouchend="send('S')"><span>◀</span></button>
+            <button class="stop" onclick="stopAuto()"><span>■</span></button>
+            <button class="right" onmousedown="send('R')" onmouseup="send('S')" ontouchstart="send('R')" ontouchend="send('S')"><span>▶</span></button>
+            <button class="down" onmousedown="send('B')" onmouseup="send('S')" ontouchstart="send('B')" ontouchend="send('S')"><span>▼</span></button>
+        </div>
+
+        <button class="main-btn" id="mainBtn" onclick="toggleMainMode()">Enable Auto Drive</button>
+        <button id="wallBtn" onclick="toggleWallMode()">Switch to Wall Follow</button>
+
+        <div class="radar-link" onclick="toggleRadar()">Show/Hide Radar</div>
+        <div class="bg-control"><label for="bg-input" class="custom-file-upload">Change Wallpaper</label><input type="file" id="bg-input" accept="image/*"></div>
+        <div class="dev-toggle" onclick="toggleDev()">DEVELOPED BY</div>
+        <div class="dev" id="devPanel">Bhavya Singh Rajawat • Jiya Sharma<br>Tanisha • Meenakshi</div>
+    </div>
+
+    <script>
+        let currentMode = 0; // 0=Manual, 1=Auto, 2=Wall
+
+        function send(dir) { 
+            if(currentMode === 0) fetch('/action?dir=' + dir); 
+        }
+
+        // --- FIXED KEYBOARD LOGIC ---
+        document.addEventListener('keydown', function(e) {
+            if(currentMode !== 0) return; // Only in Manual
+            if(e.repeat) return;
+            
+            let key = e.key.toLowerCase();
+            
+            if(key === 'w' || key === 'arrowup') { send('F'); highlight('.up'); e.preventDefault(); }
+            else if(key === 'a' || key === 'arrowleft') { send('L'); highlight('.left'); e.preventDefault(); }
+            else if(key === 'd' || key === 'arrowright') { send('R'); highlight('.right'); e.preventDefault(); }
+            else if(key === 's' || key === 'arrowdown') { send('B'); highlight('.down'); e.preventDefault(); }
+            else if(key === ' ' || key === 'x') { send('S'); highlight('.stop'); e.preventDefault(); }
+        });
+
+        document.addEventListener('keyup', function(e) {
+            if(currentMode !== 0) return;
+            const keys = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' '];
+            if (keys.includes(e.key.toLowerCase())) {
+                send('S'); // Stop when key is released
+                removeHighlights();
+            }
+        });
+
+        function highlight(selector) { document.querySelector(selector).classList.add('key-active'); }
+        function removeHighlights() { document.querySelectorAll('button').forEach(b => b.classList.remove('key-active')); }
+
+        // --- MODE LOGIC ---
+        function stopAuto() { fetch('/setMode?m=0').then(() => updateUI(0)); }
+        function toggleMainMode() { let m = (currentMode === 0) ? 1 : 0; fetch('/setMode?m='+m).then(()=>updateUI(m)); }
+        function toggleWallMode() { let m = (currentMode === 1) ? 2 : 1; fetch('/setMode?m='+m).then(()=>updateUI(m)); }
+
+        function updateUI(mode) {
+            currentMode = parseInt(mode);
+            const card = document.getElementById('mainCard');
+            const status = document.getElementById('statusText');
+            const mainBtn = document.getElementById('mainBtn');
+            const wallBtn = document.getElementById('wallBtn');
+
+            if (currentMode === 0) {
+                card.classList.remove('auto-active');
+                status.innerText = "MANUAL CONTROL"; status.style.color = "rgba(255,255,255,0.6)";
+                mainBtn.innerText = "ENABLE AUTO DRIVE"; mainBtn.style.background = "rgba(56,189,248,0.1)"; mainBtn.style.color = "#38bdf8";
+                wallBtn.style.display = "none";
+            } else {
+                card.classList.add('auto-active');
+                mainBtn.innerText = "STOP AUTO (GO MANUAL)"; mainBtn.style.background = "rgba(239,68,68,0.2)"; mainBtn.style.color = "#ef4444";
+                wallBtn.style.display = "block";
+                if (currentMode === 1) { status.innerText = "AUTO OBSTACLE AVOID"; status.style.color = "#38bdf8"; wallBtn.innerText = "SWITCH TO WALL FOLLOW"; }
+                else if (currentMode === 2) { status.innerText = "WALL FOLLOW MODE"; status.style.color = "#10b981"; wallBtn.innerText = "SWITCH TO OBSTACLE AVOID"; }
+            }
+        }
+
+        // --- EXTRAS ---
+        function toggleRadar() { let r=document.getElementById('radar-section'); if(r.style.display==='block'){r.style.display='none';}else{r.style.display='block'; setInterval(updateRadar,250);} }
+        function updateRadar() { fetch('/scanData').then(r=>r.json()).then(d => { document.getElementById('distVal').innerText=d.d; drawRadar(d.a, d.map); }); }
+        const ctx = document.getElementById('radarCanvas').getContext('2d');
+        function drawRadar(angle, map) {
+            ctx.clearRect(0,0,260,130);
+            ctx.strokeStyle="rgba(255,255,255,0.1)"; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.arc(130,130,50,Math.PI,0); ctx.stroke(); ctx.beginPath(); ctx.arc(130,130,100,Math.PI,0); ctx.stroke();
+            let rad = (180-angle)*(Math.PI/180);
+            ctx.strokeStyle="#38bdf8"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(130,130); ctx.lineTo(130+120*Math.cos(rad), 130-120*Math.sin(rad)); ctx.stroke();
+            ctx.fillStyle="#ef4444";
+            for(let i=0; i<=180; i+=10) { if(map[i]>0 && map[i]<100) { let r=(180-i)*(Math.PI/180); ctx.beginPath(); ctx.arc(130+(map[i]*1.2)*Math.cos(r), 130-(map[i]*1.2)*Math.sin(r), 3,0,2*Math.PI); ctx.fill(); } }
+        }
+        document.getElementById('bg-input').addEventListener('change', function(e) { if(this.files[0]) { const r = new FileReader(); r.onload = (e) => document.body.style.backgroundImage = `url('${e.target.result}')`; r.readAsDataURL(this.files[0]); } });
+        function toggleDev() { let d = document.getElementById('devPanel'); d.style.display = d.style.display === 'block' ? 'none' : 'block'; }
+    </script>
+</body>
+</html>

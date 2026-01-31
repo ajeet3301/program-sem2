@@ -110,7 +110,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
     <div class="dev-container">
         <span class="dev-btn" onclick="toggleDev()">Developed By</span>
-        <div id="devPanel" class="dev-list">Ajeet Kumar & Reva</div>
+        <div id="devPanel" class="dev-list">Ajeet Kumar</div>
     </div>
 
     <a href="/admin" class="admin-link">🔐 Admin Login</a>
@@ -144,7 +144,7 @@ const char index_html[] PROGMEM = R"rawliteral(
         document.getElementById('list-header').innerHTML = `✅ Today's Present List: ${data.count} / ${data.total}`;
         let html = "";
         if(data.names.length === 0) html = "<span style='color:#666'>No one yet...</span>";
-        data.names.forEach(n => { html += `<div class='p-item'>⚡ ${n}</div>`; });
+        data.names.forEach(n => { html += `<div class='p-item'> ${n}</div>`; });
         document.getElementById('present-names').innerHTML = html;
       });
     }
@@ -384,4 +384,5 @@ void setup() {
 void loop() {
   dnsServer.processNextRequest();
   server.handleClient();
+
 }

@@ -76,7 +76,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <div class="dev-container">
         <a href="/admin" class="admin-link"> Admin Login</a> <br>
         <span onclick="toggleDev()" style="cursor:pointer">Developed By</span>
-        <div id="devPanel" class="dev-list">Ajeet Kumar & Reva</div>
+        <div id="devPanel" class="dev-list">Ajeet Kumar</div>
     </div>
   </div>
   <script>
@@ -255,4 +255,5 @@ void setup() {
 void loop() {
   dnsServer.processNextRequest();
   server.handleClient();
+
 }

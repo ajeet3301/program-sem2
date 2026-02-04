@@ -1,10 +1,16 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
+#include <DNSServer.h>  // REQUIRED FOR AUTO-OPEN
 #include <Servo.h>
 
 /* ================= WIFI SETTINGS ================= */
-const char* ssid = "Rover_Keyboard_Fixed";
+const char* ssid = "Rover";
 const char* password = "12345678";
+
+/* ================= CAPTIVE PORTAL SETTINGS ================= */
+const byte DNS_PORT = 53;
+IPAddress apIP(192, 168, 4, 1);
+DNSServer dnsServer;
 
 /* ================= PINS ================= */
 #define TRIG D5
@@ -241,19 +247,40 @@ void handleScan() { String json = "{"; json += "\"a\":" + String(scanner.read())
 
 void setup() {
     Serial.begin(9600);
+    
+    // Pins Setup
     pinMode(IN1, OUTPUT); pinMode(IN2, OUTPUT); pinMode(IN3, OUTPUT); pinMode(IN4, OUTPUT);
     pinMode(TRIG, OUTPUT); pinMode(ECHO, INPUT);
     scanner.attach(SERVO_PIN); scanner.write(90);
+
+    // WiFi Setup - AP Mode with Static IP
+    WiFi.mode(WIFI_AP);
+    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(ssid, password);
+
+    // DNS Server Setup (For Captive Portal)
+    dnsServer.start(DNS_PORT, "*", apIP); // "*" redirects ALL traffic to ESP IP
+
+    // Web Server Setup
     server.on("/", [](){ server.send_P(200, "text/html", page); });
     server.on("/action", handleAction);
     server.on("/setMode", handleSetMode);
     server.on("/scanData", handleScan);
+    
+    // Catch-All Handler (Required for Captive Portal to work on Android/Windows)
+    server.onNotFound([]() {
+      server.sendHeader("Location", String("http://") + server.client().localIP().toString(), true);
+      server.send(302, "text/plain", "");
+    });
+
     server.begin();
+    Serial.println("Server Started");
 }
 
 void loop() {
+    dnsServer.processNextRequest(); // Process DNS requests
     server.handleClient();
+    
     if (driveMode == 1) runAutoMode();
     else if (driveMode == 2) runWallFollow();
 }
